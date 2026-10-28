@@ -71,10 +71,7 @@ export default function TeacherDashboard() {
   const [newThumbnail, setNewThumbnail] = useState(SAMPLE_THUMBNAILS[0].url);
   const [creating, setCreating] = useState(false);
 
-  // Teacher Guard: unapproved teacher sees approval screen
-  if (!isApproved) {
-    return <PendingApproval />;
-  }
+
 
   useEffect(() => {
     if (!currentUser) return;
@@ -268,6 +265,11 @@ export default function TeacherDashboard() {
     selectedCourseFilter === "all"
       ? analyticsEnrollments
       : analyticsEnrollments.filter((e) => e.courseId === selectedCourseFilter);
+
+  // Teacher Guard: unapproved teacher sees approval screen
+  if (!isApproved) {
+    return <PendingApproval />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">

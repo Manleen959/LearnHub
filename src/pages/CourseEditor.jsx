@@ -511,11 +511,150 @@ export default function CourseEditor() {
               <div className="mt-4 p-3.5 bg-white rounded-xl border border-purple-200 text-xs text-purple-900 font-medium flex items-center gap-2">
                 <span className="text-base">💡</span>
                 <span>
-                  <strong>Tip for Instructors:</strong> Writing descriptive, concept-rich lesson titles produces much higher quality and more insightful AI examination questions.
+                  <strong>Tip for Instructors:</strong> You can either let AI generate the quiz questions dynamically or add custom curated questions below.
                 </span>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Section 2: Course Quiz Questions (Manual & AI Fallback) */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#5624d0] flex items-center justify-center font-bold">
+                <HelpCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Quiz & Assessment Questions</h2>
+                <p className="text-xs text-gray-500">
+                  Add multiple-choice questions for the course certification exam ({questions.length} questions).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Add Question Form */}
+          <form
+            onSubmit={handleAddQuestion}
+            className="p-5 bg-gray-50 rounded-xl border border-gray-200 mb-6 space-y-4"
+          >
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">
+              Add Multiple-Choice Question
+            </h3>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Question Prompt</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Which hook is used to handle side-effects in React?"
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:ring-2 focus:ring-[#5624d0] focus:outline-none"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-700">
+                Options (Select the radio button for the correct answer)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {options.map((opt, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center gap-2 p-2 rounded-lg border bg-white ${
+                      correctIndex === idx ? "border-[#5624d0] ring-1 ring-[#5624d0]" : "border-gray-200"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="correctOption"
+                      checked={correctIndex === idx}
+                      onChange={() => setCorrectIndex(idx)}
+                      className="text-[#5624d0] focus:ring-[#5624d0] cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      required
+                      placeholder={`Option ${idx + 1}`}
+                      value={opt}
+                      onChange={(e) => handleOptionChange(idx, e.target.value)}
+                      className="w-full text-xs text-gray-800 bg-transparent focus:outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={addingQuestion}
+                className="bg-[#5624d0] hover:bg-[#401b9c] text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>{addingQuestion ? "Adding Question..." : "Add Question"}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Questions List */}
+          {questions.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 border border-dashed rounded-xl">
+              <HelpCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium text-gray-600">No manual questions added yet.</p>
+              <p className="text-xs text-gray-400">
+                If no manual questions are provided, the system will use AI to automatically generate questions for students!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {questions.map((q, qIdx) => (
+                <div
+                  key={q.id}
+                  className="p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 transition"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-purple-100 text-[#5624d0] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                        {qIdx + 1}
+                      </span>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-2">{q.question}</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          {q.options?.map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className={`px-3 py-1.5 rounded-lg flex items-center gap-2 ${
+                                q.correctIndex === optIdx
+                                  ? "bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200"
+                                  : "bg-gray-50 text-gray-600 border border-gray-100"
+                              }`}
+                            >
+                              <span className="font-mono text-[10px] uppercase text-gray-400">
+                                {String.fromCharCode(65 + optIdx)}.
+                              </span>
+                              <span>{opt}</span>
+                              {q.correctIndex === optIdx && (
+                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 ml-auto" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteQuestion(q.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
+                      title="Delete Question"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
