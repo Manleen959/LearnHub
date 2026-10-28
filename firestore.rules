@@ -1,0 +1,127 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if caller is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user has admin privileges
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // Check if user is an approved teacher
+    function isApprovedTeacher() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
+    }
+
+    // 1. USERS: Read/write own doc, cannot alter 'role' or 'approved'. Admin has full access.
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      
+      allow update: if (
+        isAdmin() ||
+        (
+          isAuthenticated() &&
+          request.auth.uid == userId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'approved'])
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // 2. COURSES: Anyone can read published courses. Approved owner teacher creates/updates. Admin has full access.
+    match /courses/{courseId} {
+      allow read: if resource.data.published == true || (isAuthenticated() && (resource.data.teacherId == request.auth.uid || isAdmin()));
+      
+      allow create: if isAdmin() || (
+        isApprovedTeacher() && request.resource.data.teacherId == request.auth.uid
+      );
+
+      allow update: if isAdmin() || (
+        isApprovedTeacher() && resource.data.teacherId == request.auth.uid
+      );
+
+      allow delete: if isAdmin() || (
+        isAuthenticated() && resource.data.teacherId == request.auth.uid
+      );
+
+      // 3. LESSONS: Signed-in users can read. Only course owner or admin can write.
+      match /lessons/{lessonId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin() || (
+          isAuthenticated() &&
+          get(/databases/$(database)/documents/courses/$(courseId)).data.teacherId == request.auth.uid
+        );
+      }
+
+      // Questions Subcollection
+      match /questions/{questionId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin() || (
+          isAuthenticated() &&
+          get(/databases/$(database)/documents/courses/$(courseId)).data.teacherId == request.auth.uid
+        );
+      }
+    }
+
+    // 4. ENROLLMENTS: A student can read and write their own. Admin and course teacher can read.
+    match /enrollments/{enrollmentId} {
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        enrollmentId.matches('^' + request.auth.uid + '_.*') ||
+        resource.data.studentId == request.auth.uid ||
+        resource.data.teacherId == request.auth.uid ||
+        isApprovedTeacher() ||
+        isAdmin() ||
+        get(/databases/$(database)/documents/courses/$(resource.data.courseId)).data.teacherId == request.auth.uid
+      );
+
+      allow write: if isAuthenticated() && (
+        enrollmentId.matches('^' + request.auth.uid + '_.*') ||
+        request.resource.data.studentId == request.auth.uid ||
+        isAdmin()
+      );
+
+      // Notes subcollection in enrollments: only the enrollment's student can read and write
+      match /notes/{lessonId} {
+        allow read, write: if isAuthenticated() && (
+          enrollmentId.matches('^' + request.auth.uid + '_.*') ||
+          get(/databases/$(database)/documents/enrollments/$(enrollmentId)).data.studentId == request.auth.uid
+        );
+      }
+    }
+
+    // 5. CERTIFICATES: Public read, signed-in create.
+    match /certificates/{certificateId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // 6. TRAINING ASSIGNMENTS: Admin writes, assigned student reads their own.
+    match /trainingAssignments/{assignmentId} {
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid || isAdmin()
+      );
+      allow write: if isAdmin();
+    }
+
+    // 7. LEADERBOARD: Any signed-in user can read, only the owner can write.
+    match /leaderboard/{uid} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == uid;
+    }
+  }
+}

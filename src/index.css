@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #5624d0;
+    --primary-hover: #401b9c;
+    --primary-light: #eceb98;
+  }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+}
+
+.primary-purple {
+  background-color: #5624d0;
+}
+
+.text-primary-purple {
+  color: #5624d0;
+}
+
+.border-primary-purple {
+  border-color: #5624d0;
+}
