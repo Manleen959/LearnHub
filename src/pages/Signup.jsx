@@ -85,6 +85,10 @@ export default function Signup() {
       );
     } else if (code === "auth/popup-closed-by-user") {
       setError("Sign-in popup was closed before completion.");
+    } else if (code === "auth/unauthorized-domain" || msg.includes("unauthorized-domain")) {
+      setError(
+        "Google Sign-In domain authorization required: Please add 'learnhub-seven-nu.vercel.app' in Firebase Console under Authentication > Settings > Authorized Domains, or sign up with Email & Password below."
+      );
     } else if (code === "auth/email-already-in-use") {
       setError("This email is already registered. Please log in.");
     } else if (code === "auth/invalid-email") {
